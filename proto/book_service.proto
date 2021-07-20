@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option go_package = "github.com/sakiib/grpc-try;pb";
+
+import "book.proto";
+
+message CreateBookRequest {
+  Book book = 1;
+}
+
+message CreateBookResponse {
+  string id = 1;
+}
+
+message GetBookRequest {
+  string id = 1;
+}
+
+message GetBookResponse {
+  Book book = 1;
+}
+
+message EmptyRequest {
+
+}
+
+message GetBooksResponse {
+  repeated Book book = 1;
+}
+
+service BookService {
+  rpc GetBook(GetBookRequest) returns (GetBookResponse) {};
+  rpc CreateBook(CreateBookRequest) returns (CreateBookResponse) {};
+  rpc GetBooks(EmptyRequest) returns (GetBooksResponse) {};
+}
