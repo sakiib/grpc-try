@@ -32,4 +32,5 @@ service BookService {
   rpc GetBook(GetBookRequest) returns (GetBookResponse) {};
   rpc CreateBook(CreateBookRequest) returns (CreateBookResponse) {};
   rpc GetBooks(EmptyRequest) returns (GetBooksResponse) {};
+  rpc ListBooks(EmptyRequest) returns (stream GetBookResponse) {};
 }

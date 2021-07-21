@@ -21,6 +21,7 @@ type BookServiceClient interface {
 	GetBook(ctx context.Context, in *GetBookRequest, opts ...grpc.CallOption) (*GetBookResponse, error)
 	CreateBook(ctx context.Context, in *CreateBookRequest, opts ...grpc.CallOption) (*CreateBookResponse, error)
 	GetBooks(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetBooksResponse, error)
+	ListBooks(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (BookService_ListBooksClient, error)
 }
 
 type bookServiceClient struct {
@@ -58,6 +59,38 @@ func (c *bookServiceClient) GetBooks(ctx context.Context, in *EmptyRequest, opts
 	return out, nil
 }
 
+func (c *bookServiceClient) ListBooks(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (BookService_ListBooksClient, error) {
+	stream, err := c.cc.NewStream(ctx, &BookService_ServiceDesc.Streams[0], "/BookService/ListBooks", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &bookServiceListBooksClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type BookService_ListBooksClient interface {
+	Recv() (*GetBookResponse, error)
+	grpc.ClientStream
+}
+
+type bookServiceListBooksClient struct {
+	grpc.ClientStream
+}
+
+func (x *bookServiceListBooksClient) Recv() (*GetBookResponse, error) {
+	m := new(GetBookResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // BookServiceServer is the server API for BookService service.
 // All implementations must embed UnimplementedBookServiceServer
 // for forward compatibility
@@ -65,6 +98,7 @@ type BookServiceServer interface {
 	GetBook(context.Context, *GetBookRequest) (*GetBookResponse, error)
 	CreateBook(context.Context, *CreateBookRequest) (*CreateBookResponse, error)
 	GetBooks(context.Context, *EmptyRequest) (*GetBooksResponse, error)
+	ListBooks(*EmptyRequest, BookService_ListBooksServer) error
 	mustEmbedUnimplementedBookServiceServer()
 }
 
@@ -80,6 +114,9 @@ func (UnimplementedBookServiceServer) CreateBook(context.Context, *CreateBookReq
 }
 func (UnimplementedBookServiceServer) GetBooks(context.Context, *EmptyRequest) (*GetBooksResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBooks not implemented")
+}
+func (UnimplementedBookServiceServer) ListBooks(*EmptyRequest, BookService_ListBooksServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListBooks not implemented")
 }
 func (UnimplementedBookServiceServer) mustEmbedUnimplementedBookServiceServer() {}
 
@@ -148,6 +185,27 @@ func _BookService_GetBooks_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BookService_ListBooks_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(EmptyRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BookServiceServer).ListBooks(m, &bookServiceListBooksServer{stream})
+}
+
+type BookService_ListBooksServer interface {
+	Send(*GetBookResponse) error
+	grpc.ServerStream
+}
+
+type bookServiceListBooksServer struct {
+	grpc.ServerStream
+}
+
+func (x *bookServiceListBooksServer) Send(m *GetBookResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // BookService_ServiceDesc is the grpc.ServiceDesc for BookService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -168,6 +226,12 @@ var BookService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BookService_GetBooks_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "ListBooks",
+			Handler:       _BookService_ListBooks_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "book_service.proto",
 }

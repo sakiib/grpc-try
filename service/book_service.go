@@ -53,3 +53,15 @@ func (bs *BookService) GetBooks(ctx context.Context, req *pb.EmptyRequest) (*pb.
 	}
 	return res, nil
 }
+
+func (bs *BookService) ListBooks(req *pb.EmptyRequest, stream pb.BookService_ListBooksServer) error {
+	books := bs.store.GetAll()
+	for _, book := range books {
+		if err := stream.Send(&pb.GetBookResponse{
+			Book: book,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}

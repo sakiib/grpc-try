@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sakiib/grpc-try/gen/pb"
 	"google.golang.org/grpc"
+	"io"
 	"log"
 	"strconv"
 	"time"
@@ -26,6 +27,8 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
+	log.Println("==================== inserting some books =====================")
+
 	for i := 0; i < 5; i++ {
 		book := &pb.Book{
 			Id:   strconv.Itoa(i),
@@ -39,6 +42,7 @@ func main() {
 		}
 		log.Println("create book response: ", res)
 	}
+	log.Println("==================== get book with a valid id =====================")
 
 	book, err := client.GetBook(ctx, &pb.GetBookRequest{
 		Id: "3",
@@ -48,10 +52,29 @@ func main() {
 	}
 	log.Println("book: ", book)
 
+	log.Println("==================== get all the books (repeated) =====================")
+
 	books, err := client.GetBooks(ctx, &pb.EmptyRequest{})
 	if err != nil {
 		log.Printf("failed to get books with %s", err.Error())
 	} else {
 		log.Println("books list: ", books)
+	}
+
+	log.Println("==================== get all the books (stream) =====================")
+	stream, err := client.ListBooks(ctx, &pb.EmptyRequest{})
+	if err != nil {
+		log.Fatalf("%v.ListBooks = _, %v", client, err)
+	}
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("%v.ListBooks = _, %v", client, err)
+		}
+		book := res.GetBook()
+		log.Println("streaming: ", book.Id, book.Name)
 	}
 }
