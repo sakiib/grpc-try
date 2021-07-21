@@ -84,7 +84,7 @@ func main() {
 		log.Fatalf("%v.RecordRoute(_) = _, %v", client, err)
 	}
 
-	for i := 0; i < 6; i++ {
+	for i := 0; i < 5; i++ {
 		req := &pb.GetBookRequest{
 			Id: strconv.Itoa(i),
 		}
