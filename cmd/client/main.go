@@ -61,7 +61,7 @@ func main() {
 		log.Println("books list: ", books)
 	}
 
-	log.Println("==================== get all the books (stream) =====================")
+	log.Println("==================== get all the books (server stream) =====================")
 	stream, err := client.ListBooks(ctx, &pb.EmptyRequest{})
 	if err != nil {
 		log.Fatalf("%v.ListBooks = _, %v", client, err)
@@ -77,4 +77,25 @@ func main() {
 		book := res.GetBook()
 		log.Println("streaming: ", book.Id, book.Name)
 	}
+
+	log.Println("==================== get summary of all the books (client stream) =====================")
+	streams, err := client.BooksSummary(ctx)
+	if err != nil {
+		log.Fatalf("%v.RecordRoute(_) = _, %v", client, err)
+	}
+
+	for i := 0; i < 6; i++ {
+		req := &pb.GetBookRequest{
+			Id: strconv.Itoa(i),
+		}
+		if err := streams.Send(req); err != nil {
+			log.Fatalf("%v.Send(%v) = %v", stream, req, err)
+		}
+	}
+
+	summary, err := streams.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("%v.CloseAndRecv() got error %v, want %v", streams, err, nil)
+	}
+	log.Printf("Route summary: %v", summary)
 }

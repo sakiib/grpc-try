@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/sakiib/grpc-try/gen/pb"
+	"io"
 	"log"
 )
 
@@ -64,4 +65,24 @@ func (bs *BookService) ListBooks(req *pb.EmptyRequest, stream pb.BookService_Lis
 		}
 	}
 	return nil
+}
+
+func (bs *BookService) BooksSummary(stream pb.BookService_BooksSummaryServer) error {
+	var summary string
+	for {
+		id, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&pb.SummaryResponse{
+				Summary: summary,
+			})
+		}
+		if err != nil {
+			return err
+		}
+		book, err := bs.store.Get(id.GetId())
+		if err != nil {
+			return err
+		}
+		summary += book.Name
+	}
 }

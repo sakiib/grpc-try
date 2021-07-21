@@ -28,9 +28,14 @@ message GetBooksResponse {
   repeated Book book = 1;
 }
 
+message SummaryResponse {
+  string summary = 1;
+}
+
 service BookService {
   rpc GetBook(GetBookRequest) returns (GetBookResponse) {};
   rpc CreateBook(CreateBookRequest) returns (CreateBookResponse) {};
   rpc GetBooks(EmptyRequest) returns (GetBooksResponse) {};
   rpc ListBooks(EmptyRequest) returns (stream GetBookResponse) {};
+  rpc BooksSummary(stream GetBookRequest) returns (SummaryResponse) {};
 }

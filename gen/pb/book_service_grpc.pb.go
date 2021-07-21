@@ -22,6 +22,7 @@ type BookServiceClient interface {
 	CreateBook(ctx context.Context, in *CreateBookRequest, opts ...grpc.CallOption) (*CreateBookResponse, error)
 	GetBooks(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*GetBooksResponse, error)
 	ListBooks(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (BookService_ListBooksClient, error)
+	BooksSummary(ctx context.Context, opts ...grpc.CallOption) (BookService_BooksSummaryClient, error)
 }
 
 type bookServiceClient struct {
@@ -91,6 +92,40 @@ func (x *bookServiceListBooksClient) Recv() (*GetBookResponse, error) {
 	return m, nil
 }
 
+func (c *bookServiceClient) BooksSummary(ctx context.Context, opts ...grpc.CallOption) (BookService_BooksSummaryClient, error) {
+	stream, err := c.cc.NewStream(ctx, &BookService_ServiceDesc.Streams[1], "/BookService/BooksSummary", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &bookServiceBooksSummaryClient{stream}
+	return x, nil
+}
+
+type BookService_BooksSummaryClient interface {
+	Send(*GetBookRequest) error
+	CloseAndRecv() (*SummaryResponse, error)
+	grpc.ClientStream
+}
+
+type bookServiceBooksSummaryClient struct {
+	grpc.ClientStream
+}
+
+func (x *bookServiceBooksSummaryClient) Send(m *GetBookRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *bookServiceBooksSummaryClient) CloseAndRecv() (*SummaryResponse, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(SummaryResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // BookServiceServer is the server API for BookService service.
 // All implementations must embed UnimplementedBookServiceServer
 // for forward compatibility
@@ -99,6 +134,7 @@ type BookServiceServer interface {
 	CreateBook(context.Context, *CreateBookRequest) (*CreateBookResponse, error)
 	GetBooks(context.Context, *EmptyRequest) (*GetBooksResponse, error)
 	ListBooks(*EmptyRequest, BookService_ListBooksServer) error
+	BooksSummary(BookService_BooksSummaryServer) error
 	mustEmbedUnimplementedBookServiceServer()
 }
 
@@ -117,6 +153,9 @@ func (UnimplementedBookServiceServer) GetBooks(context.Context, *EmptyRequest) (
 }
 func (UnimplementedBookServiceServer) ListBooks(*EmptyRequest, BookService_ListBooksServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListBooks not implemented")
+}
+func (UnimplementedBookServiceServer) BooksSummary(BookService_BooksSummaryServer) error {
+	return status.Errorf(codes.Unimplemented, "method BooksSummary not implemented")
 }
 func (UnimplementedBookServiceServer) mustEmbedUnimplementedBookServiceServer() {}
 
@@ -206,6 +245,32 @@ func (x *bookServiceListBooksServer) Send(m *GetBookResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _BookService_BooksSummary_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(BookServiceServer).BooksSummary(&bookServiceBooksSummaryServer{stream})
+}
+
+type BookService_BooksSummaryServer interface {
+	SendAndClose(*SummaryResponse) error
+	Recv() (*GetBookRequest, error)
+	grpc.ServerStream
+}
+
+type bookServiceBooksSummaryServer struct {
+	grpc.ServerStream
+}
+
+func (x *bookServiceBooksSummaryServer) SendAndClose(m *SummaryResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *bookServiceBooksSummaryServer) Recv() (*GetBookRequest, error) {
+	m := new(GetBookRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // BookService_ServiceDesc is the grpc.ServiceDesc for BookService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -231,6 +296,11 @@ var BookService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "ListBooks",
 			Handler:       _BookService_ListBooks_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "BooksSummary",
+			Handler:       _BookService_BooksSummary_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "book_service.proto",
